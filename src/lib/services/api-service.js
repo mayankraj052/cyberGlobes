@@ -80,7 +80,6 @@ export class ApiService {
 	 * @returns {Promise<any>}
 	 */
 	async getScripterStatus(session_id) {
-		// console.log(`🔍 CYBERGLOBES_STATUS_FIX: Checking status for session: ${session_id}`);
 		return this.makeApiCall(`scripter/status/${session_id}`, {}, 'GET');
 	}
 
@@ -125,17 +124,4 @@ export class ApiService {
 			'json'
 		);
 	}
-<<<<<<< HEAD
 }
-=======
-
-	async deleteVisualization(visualizationId) {
-	    return this.makeApiCall(
-		    `insights/visualization/${visualizationId}`,
-		    {},
-		    'DELETE',
-		    'json'
-	);
-}
-}
->>>>>>> 1f93aebf783e1f8f11ab45c5a05dddcf8c55ebbc
