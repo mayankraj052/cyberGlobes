@@ -11,6 +11,7 @@
 	import { AUTH_TOKEN } from '$lib/constants/constants.js';
 	import { PUBLIC_VITE_PUSHER_APP_KEY, PUBLIC_VITE_PUSHER_APP_CLUSTER, PUBLIC_ECHO_BROADCASTER, PUBLIC_ECHO_PUSHER_HOST, PUBLIC_ECHO_PUSHER_PORT, PUBLIC_ECHO_PUSHER_SCHEME, PUBLIC_ECHO_PUSHER_ENCRYPTED, PUBLIC_API_URL } from '$env/static/public';
 	import { browser } from '$app/environment';
+	import { triggerSuccessToast, triggerErrorToast } from '$lib/stores/toastStore';
 
 	export let selectedStep = '';
 	export let onStepSelect: (step: string) => void;
@@ -375,9 +376,26 @@
 		promptCards = [...promptCards, newCard];
 	}
 
-	function removePromptCard(cardId: string) {
-		promptCards = promptCards.filter((card) => card.id !== cardId);
-	}
+    async function removePromptCard(cardId: string) {
+        const confirmDelete = confirm('Are you sure you want to delete this visualization?');
+        if (!confirmDelete) return;
+
+  
+        
+
+        try {
+            const response = await apiService.deleteVisualization(cardId);
+			
+            if (response.success) {
+                triggerSuccessToast('Visualization deleted successfully!');
+				promptCards = promptCards.filter((card) => card.visualizationId !== cardId);
+            }else {
+                triggerErrorToast('Failed to delete visualization on server.');
+            } 
+        } catch (error) {
+            triggerErrorToast('Error deleting visualization.');
+        }
+    }
 
 	function updatePromptCard(cardId: string, updates: any) {
 		promptCards = promptCards.map((card) => (card.id === cardId ? { ...card, ...updates } : card));
@@ -521,9 +539,28 @@
 		onScripterResults(card.results, card.type, cardId);
 	}
 
-	function clearAllCards() {
-		promptCards = [];
+	async function clearAllCards(){
+		const confirmDelete = confirm('Are you sure you want to delete this visualization?');
+		if(!confirmDelete) return;
+
+		const cardsToDelete = [...promptCards];
+		try{
+			await Promise.all(
+				cardsToDelete.map((card)=>{
+					if(card.visualizationId){
+						return apiService.deleteVisualization(card.visualizationId);
+					}
+				})
+			);
+			promptCards = [];
+			triggerSuccessToast('All visualization deleted successfully!');
+
+		}catch(error){
+			console.error('Error clearing all visualization:',error);
+			triggerErrorToast('Error clearing all visualization.');
+		}
 	}
+			
 
 	// Toggle between auto and manual mode
 	function toggleMode(mode: 'auto' | 'manual') {
