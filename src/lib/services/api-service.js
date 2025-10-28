@@ -124,4 +124,13 @@ export class ApiService {
 			'json'
 		);
 	}
+
+	async deleteVisualization(visualizationId) {
+	    return this.makeApiCall(
+		    `insights/visualization/${visualizationId}`,
+		    {},
+		    'DELETE',
+		    'json'
+	);
+}
 }
