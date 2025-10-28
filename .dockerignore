@@ -1,0 +1,14 @@
+node_modules/
+build
+dist
+
+.svelte-kit
+.cache
+.git
+.gitignore
+.vscode
+.dockerignore
+.env.sample
+npm-debug.log
+Dockerfile
+docker-compose.yml
