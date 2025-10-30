@@ -51,6 +51,15 @@
 
 	let cardIdCounter = 0;
 
+	$: if (conversationResults.length === 0 && promptCards.length > 0) {
+    
+        console.log('conversationResults is empty, clearing internal promptCards.');
+        promptCards = [];
+        isAnalyzing = false;
+        lastAnalyzedStep = null;
+        hasSavedVisualizations = false;
+    }
+
 	// Generate steps only from conversation results
 	$: dynamicSteps = conversationResults.map((result, index) => ({
 		id: result.id || `step-${index}`,
@@ -380,9 +389,6 @@
         const confirmDelete = confirm('Are you sure you want to delete this visualization?');
         if (!confirmDelete) return;
 
-  
-        
-
         try {
             const response = await apiService.deleteVisualization(cardId);
 			
@@ -540,7 +546,7 @@
 	}
 
 	async function clearAllCards(){
-		const confirmDelete = confirm('Are you sure you want to delete this visualization?');
+		const confirmDelete = confirm('Are you sure you want to delete all visualizations?');
 		if(!confirmDelete) return;
 
 		const cardsToDelete = [...promptCards];
@@ -553,11 +559,11 @@
 				})
 			);
 			promptCards = [];
-			triggerSuccessToast('All visualization deleted successfully!');
+			triggerSuccessToast('All visualizations are deleted successfully!');
 
 		}catch(error){
-			console.error('Error clearing all visualization:',error);
-			triggerErrorToast('Error clearing all visualization.');
+			console.error('Error clearing all visualizations:',error);
+			triggerErrorToast('Error clearing all visualizations.');
 		}
 	}
 			
