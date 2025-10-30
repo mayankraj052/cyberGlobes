@@ -733,13 +733,21 @@
 		// - We have saved visualizations loaded from DB (either flag or count > 0)
 		// - Already analyzing
 		// - Same step as last analyzed
-		if (mode === 'auto' && step && !analyzing && lastStep !== step && !hasSaved && savedCount === 0) {
-			console.log('🚀 Triggering auto-analysis for step:', step);
-			// Clear existing cards when step changes
-			promptCards = [];
-			// Trigger new analysis
-			triggerAutoAnalysis();
-		}
+		if (mode === 'auto' && step && !analyzing && lastStep && lastStep !== step) {
+            console.log('🚀 Triggering auto-analysis for step:', step);
+            // Clear existing cards when step changes
+            // promptCards = [];
+            // Trigger new analysis
+            triggerAutoAnalysis();
+        }
+ 
+        if (lastStep === null && !hasSaved && savedCount === 0) {
+            console.log('🚀 Triggering auto-analysis for step:', step);
+            // Clear existing cards when step changes
+            // promptCards = [];
+            // Trigger new analysis
+            triggerAutoAnalysis();
+        }
 	}
 
 </script>
@@ -864,6 +872,13 @@
 
 		<!-- Prompt Cards List -->
 		<div class="flex-1 overflow-y-auto space-y-0 mb-3">
+			{#if isAnalyzing}
+				<div class="text-center text-muted-foreground py-8">
+					<Icon icon="lucide:loader-2" class="w-12 h-12 mx-auto mb-2 opacity-50 animate-spin" />
+					<p class="text-sm font-medium">Analyzing step data</p>
+					<p class="text-xs mt-1">AI is analyzing the data to recommend visualizations...</p>
+				</div>
+			{/if}
 			{#if promptCards.length === 0 && !isAnalyzing}
 				<div class="text-center text-muted-foreground py-8">
 					<Icon icon={visualizationMode === 'auto' ? 'lucide:sparkles' : 'lucide:layers'} class="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -876,13 +891,7 @@
 							: 'Click "Add" to create a new visualization'}
 					</p>
 				</div>
-			{:else if isAnalyzing}
-				<div class="text-center text-muted-foreground py-8">
-					<Icon icon="lucide:loader-2" class="w-12 h-12 mx-auto mb-2 opacity-50 animate-spin" />
-					<p class="text-sm font-medium">Analyzing step data</p>
-					<p class="text-xs mt-1">AI is analyzing the data to recommend visualizations...</p>
-				</div>
-			{:else}
+            {:else if promptCards.length > 0}
 				{#each promptCards as card (card.id)}
 					<VisualizationPromptCard
 						{card}
