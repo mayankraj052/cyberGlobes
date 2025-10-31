@@ -49,21 +49,52 @@
 		onUpdate(card.id, { title: target.value });
 	}
 
-	// Get status icon and color
-	function getStatusDisplay() {
-		switch (card.status) {
-			case 'processing':
-				return { icon: 'lucide:loader-2', color: 'text-blue-500', text: 'Processing...', spinning: true };
-			case 'completed':
-				return { icon: 'lucide:check-circle', color: 'text-green-500', text: 'Ready', spinning: false };
-			case 'failed':
-				return { icon: 'lucide:x-circle', color: 'text-red-500', text: 'Failed', spinning: false };
-			default:
-				return { icon: 'lucide:circle', color: 'text-gray-400', text: 'Pending', spinning: false };
+	// Normalized status + switch-case logic
+	function getStatusDisplay(status: string) {
+		const normalizedStatus = status ? status.trim().toLowerCase() : 'pending';
+
+		switch (normalizedStatus) {
+			case 'processing': {
+				return {
+					icon: 'lucide:loader-2',
+					color: 'text-blue-500',
+					text: 'Processing...',
+					spinning: true
+				};
+				break;
+			}
+			case 'completed': {
+				return {
+					icon: 'lucide:check-circle',
+					color: 'text-green-500',
+					text: 'Ready',
+					spinning: false
+				};
+				break;
+			}
+			case 'failed': {
+				return {
+					icon: 'lucide:x-circle',
+					color: 'text-red-500',
+					text: 'Failed',
+					spinning: false
+				};
+				break;
+			}
+			default: {
+				return {
+					icon: 'lucide:circle',
+					color: 'text-gray-400',
+					text: 'Pending',
+					spinning: false
+				};
+				break;
+			}
 		}
 	}
 
-	$: statusDisplay = getStatusDisplay();
+	$: statusDisplay =  getStatusDisplay(card.status);
+	$: console.log('Card status updated:', card.id, card.status);
 </script>
 
 <Card class="p-4 mb-3 border border-border hover:border-primary/50 transition-colors">
@@ -80,7 +111,7 @@
 			variant="ghost"
 			size="sm"
 			class="p-1 h-auto hover:bg-destructive/10 hover:text-destructive"
-			on:click={() => onRemove(card.id)}
+			on:click={() => onRemove(card.visualizationId ?? card.id)}
 			title="Remove visualization"
 		>
 			<Icon icon="lucide:x" class="w-4 h-4" />
@@ -103,13 +134,11 @@
 						disabled={card.status === 'processing'}
 					/>
 					<div
-						class={`
-							px-2 py-1 rounded-md text-xs font-medium border transition-all
+						class={`px-2 py-1 rounded-md text-xs font-medium border transition-all
 							${card.type === vizType.value
 								? 'bg-primary text-primary-foreground border-primary'
 								: 'bg-background text-muted-foreground border-border hover:bg-muted'}
-							${card.status === 'processing' ? 'opacity-50 cursor-not-allowed' : ''}
-						`}
+							${card.status === 'processing' ? 'opacity-50 cursor-not-allowed' : ''}`}
 					>
 						<Icon icon={vizType.icon} class="w-3 h-3 inline mr-1" />
 						{vizType.label}
@@ -140,9 +169,7 @@
 				icon={statusDisplay.icon}
 				class={`w-4 h-4 ${statusDisplay.color} ${statusDisplay.spinning ? 'animate-spin' : ''}`}
 			/>
-			<span class="text-xs font-medium {statusDisplay.color}">
-				{statusDisplay.text}
-			</span>
+			<span class="text-xs font-medium">{statusDisplay.text}</span>
 		</div>
 
 		<!-- Action Buttons -->

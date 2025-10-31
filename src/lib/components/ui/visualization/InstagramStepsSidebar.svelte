@@ -11,6 +11,7 @@
 	import { AUTH_TOKEN } from '$lib/constants/constants.js';
 	import { PUBLIC_VITE_PUSHER_APP_KEY, PUBLIC_VITE_PUSHER_APP_CLUSTER, PUBLIC_ECHO_BROADCASTER, PUBLIC_ECHO_PUSHER_HOST, PUBLIC_ECHO_PUSHER_PORT, PUBLIC_ECHO_PUSHER_SCHEME, PUBLIC_ECHO_PUSHER_ENCRYPTED, PUBLIC_API_URL } from '$env/static/public';
 	import { browser } from '$app/environment';
+	import { triggerSuccessToast, triggerErrorToast } from '$lib/stores/toastStore';
 
 	export let selectedStep = '';
 	export let onStepSelect: (step: string) => void;
@@ -49,6 +50,15 @@
 	}> = [];
 
 	let cardIdCounter = 0;
+
+	$: if (conversationResults.length === 0 && promptCards.length > 0) {
+    
+        console.log('conversationResults is empty, clearing internal promptCards.');
+        promptCards = [];
+        isAnalyzing = false;
+        lastAnalyzedStep = null;
+        hasSavedVisualizations = false;
+    }
 
 	// Generate steps only from conversation results
 	$: dynamicSteps = conversationResults.map((result, index) => ({
@@ -375,9 +385,23 @@
 		promptCards = [...promptCards, newCard];
 	}
 
-	function removePromptCard(cardId: string) {
-		promptCards = promptCards.filter((card) => card.id !== cardId);
-	}
+    async function removePromptCard(cardId: string) {
+        const confirmDelete = confirm('Are you sure you want to delete this visualization?');
+        if (!confirmDelete) return;
+
+        try {
+            const response = await apiService.deleteVisualization(cardId);
+			
+            if (response.success) {
+                triggerSuccessToast('Visualization deleted successfully!');
+				promptCards = promptCards.filter((card) => card.visualizationId !== cardId);
+            }else {
+                triggerErrorToast('Failed to delete visualization on server.');
+            } 
+        } catch (error) {
+            triggerErrorToast('Error deleting visualization.');
+        }
+    }
 
 	function updatePromptCard(cardId: string, updates: any) {
 		promptCards = promptCards.map((card) => (card.id === cardId ? { ...card, ...updates } : card));
@@ -521,9 +545,28 @@
 		onScripterResults(card.results, card.type, cardId);
 	}
 
-	function clearAllCards() {
-		promptCards = [];
+	async function clearAllCards(){
+		const confirmDelete = confirm('Are you sure you want to delete all visualizations?');
+		if(!confirmDelete) return;
+
+		const cardsToDelete = [...promptCards];
+		try{
+			await Promise.all(
+				cardsToDelete.map((card)=>{
+					if(card.visualizationId){
+						return apiService.deleteVisualization(card.visualizationId);
+					}
+				})
+			);
+			promptCards = [];
+			triggerSuccessToast('All visualizations are deleted successfully!');
+
+		}catch(error){
+			console.error('Error clearing all visualizations:',error);
+			triggerErrorToast('Error clearing all visualizations.');
+		}
 	}
+			
 
 	// Toggle between auto and manual mode
 	function toggleMode(mode: 'auto' | 'manual') {
@@ -733,13 +776,21 @@
 		// - We have saved visualizations loaded from DB (either flag or count > 0)
 		// - Already analyzing
 		// - Same step as last analyzed
-		if (mode === 'auto' && step && !analyzing && lastStep !== step && !hasSaved && savedCount === 0) {
-			console.log('🚀 Triggering auto-analysis for step:', step);
-			// Clear existing cards when step changes
-			promptCards = [];
-			// Trigger new analysis
-			triggerAutoAnalysis();
-		}
+		if (mode === 'auto' && step && !analyzing && lastStep && lastStep !== step) {
+            console.log('🚀 Triggering auto-analysis for step:', step);
+            // Clear existing cards when step changes
+            // promptCards = [];
+            // Trigger new analysis
+            triggerAutoAnalysis();
+        }
+ 
+        if (lastStep === null && !hasSaved && savedCount === 0) {
+            console.log('🚀 Triggering auto-analysis for step:', step);
+            // Clear existing cards when step changes
+            // promptCards = [];
+            // Trigger new analysis
+            triggerAutoAnalysis();
+        }
 	}
 
 </script>
@@ -864,6 +915,13 @@
 
 		<!-- Prompt Cards List -->
 		<div class="flex-1 overflow-y-auto space-y-0 mb-3">
+			{#if isAnalyzing}
+				<div class="text-center text-muted-foreground py-8">
+					<Icon icon="lucide:loader-2" class="w-12 h-12 mx-auto mb-2 opacity-50 animate-spin" />
+					<p class="text-sm font-medium">Analyzing step data</p>
+					<p class="text-xs mt-1">AI is analyzing the data to recommend visualizations...</p>
+				</div>
+			{/if}
 			{#if promptCards.length === 0 && !isAnalyzing}
 				<div class="text-center text-muted-foreground py-8">
 					<Icon icon={visualizationMode === 'auto' ? 'lucide:sparkles' : 'lucide:layers'} class="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -876,13 +934,7 @@
 							: 'Click "Add" to create a new visualization'}
 					</p>
 				</div>
-			{:else if isAnalyzing}
-				<div class="text-center text-muted-foreground py-8">
-					<Icon icon="lucide:loader-2" class="w-12 h-12 mx-auto mb-2 opacity-50 animate-spin" />
-					<p class="text-sm font-medium">Analyzing step data</p>
-					<p class="text-xs mt-1">AI is analyzing the data to recommend visualizations...</p>
-				</div>
-			{:else}
+            {:else if promptCards.length > 0}
 				{#each promptCards as card (card.id)}
 					<VisualizationPromptCard
 						{card}

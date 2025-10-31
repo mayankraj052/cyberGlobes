@@ -48,5 +48,14 @@ export const hideToast = () => {
  * @param {string} message The message to display.
  */
 export const triggerSuccessToast = (message) => {
-	showToast({ message });
+	showToast({ message, type: TOAST_TYPE.SUCCESS });
+};
+
+/**
+ * Trigger an error toast message.
+ *
+ * @param {string} message The message to display.
+ */
+export const triggerErrorToast = (message) => {
+	showToast({ message, type: TOAST_TYPE.ERROR });
 };

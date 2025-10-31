@@ -352,13 +352,23 @@
 		sidebarVisible = !sidebarVisible;
 	}
 
-	function handleChatSelect(chatId: string) {
-		console.log('handleChatSelect called with:', chatId);
-		selectedChatId = chatId;
-		console.log('selectedChatId updated to:', selectedChatId);
-		currentMessages = mockConversations[chatId] || [];
+    function handleChatSelect(chatId: string) {
+        console.log('handleChatSelect called with:', chatId);
+        selectedChatId = chatId;
 
-		// Close sidebar on mobile after selection
+        if (chatId.startsWith('new-')) {
+            console.log('Resetting all state for new chat');
+            currentMessages = []; 
+            conversationResults = []; 
+            selectedStep = '';
+            hasVisualizationData = false;
+            lastUserQuery = '';
+            scripterResults = [];
+            selectedViewType = 'datatable';
+            hasSavedVisualizationsCount = 0;
+        }
+        
+        // Close sidebar on mobile after selection
 		if (isMobile) {
 			sidebarVisible = false;
 		}
