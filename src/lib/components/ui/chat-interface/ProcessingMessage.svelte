@@ -73,40 +73,67 @@ function formatContent(text: string): string {
 
 {#if showMessage}
 <div class="flex justify-start mb-6" in:fade={{ duration: 400 }}>
-	<div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-xl p-6 max-w-2xl border border-blue-200/50 dark:border-blue-800/30 shadow-sm">
-		<div class="flex items-start gap-3">
-			<div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-				<Icon icon="lucide:zap" class="w-4 h-4 text-primary {isComplete ? '' : 'animate-pulse'}" />
-			</div>
-			<div class="flex-1 text-sm leading-relaxed space-y-4">
-				{#if steps && steps.length > 0}
-					{#each steps as step, index (step.title + index)}
-						{@const classes = getStepClasses(step)}
-						<div class="mb-4">
-							<div class={classes.titleClass}>
-								<Icon icon={classes.statusIcon} class={classes.iconClass} width={16} height={16} />
-								<span>{step.title}</span>
-							</div>
-							{#if step.description}
-								<div class="text-muted-foreground text-xs leading-relaxed pl-2 {classes.borderClass}">
-									{step.description}
-								</div>
-							{/if}
-							{#if (step.status === 'error' || step.status === 'failed') && step.error_details}
-								<div class="text-red-600 dark:text-red-400 text-xs mt-2 pl-2 {classes.borderClass}">
-									<strong>Error:</strong> {step.error_details}
-								</div>
-							{/if}
-						</div>
-					{/each}
-				{:else}
-					{@html formatContent(displayText)}
-				{/if}
-			</div>
-		</div>
-	</div>
+    <div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-xl p-6 max-w-2xl border border-blue-200/50 dark:border-blue-800/30 shadow-sm">
+        <div class="flex items-start gap-3">
+            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                <Icon icon="lucide:zap" class="w-4 h-4 text-primary {isComplete ? '' : 'animate-pulse'}" />
+            </div>
+            <div class="flex-1 text-sm leading-relaxed space-y-4">
+                {#if steps && steps.length > 0}
+                    {#each steps as step, index (step.title + index)}
+                        {@const classes = getStepClasses(step)}
+                        <div class="mb-4">
+                            <div class={classes.titleClass}>
+                                <Icon icon={classes.statusIcon} class={classes.iconClass} width={16} height={16} />
+                                <span>{step.title}</span>
+                            </div>
+                            {#if step.description}
+                                <div class="text-muted-foreground text-xs leading-relaxed pl-2 {classes.borderClass}">
+                                    {step.description}
+                                </div>
+                            {/if}
+                            {#if step.status}
+                                <div class="mt-1 text-xs leading-relaxed space-y-1">
+                                    {#if step.status === 'todo'}
+                                        <div class="text-xs leading-relaxed mt-0 pt-0">
+                                            <p class="text-yellow-600 dark:text-yellow-400 font-semibold m-0 p-0 flex items-center gap-1">🟡 Waiting to start...</p>
+                                        </div>
+                                    {:else if step.status === 'inprogress' || step.status === 'processing'}
+                                        <div class="text-xs leading-relaxed mt-0 pt-0">
+                                            <p class="text-blue-600 dark:text-blue-400 font-semibold animate-pulse m-0 p-0 flex items-center gap-1">🔵 Processing...</p>
+                                        </div>
+                                    {:else if step.status === 'completed'}
+                                        <div class="text-xs leading-relaxed mt-0 pt-0">
+                                            <div class="flex items-center gap-2 whitespace-nowrap">
+                                                <p class="text-green-600 dark:text-green-400 font-semibold m-0 p-0 flex items-center gap-1">🟢 Completed</p>
+                                                {#if step.json_data}
+                                                    <!-- ✅ Show download icon only if backend sent json_data -->
+                                                    <a href={step.json_data} target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-600 transition-colors inline-flex items-center gap-1 m-0 p-0" title="View Details">
+                                                        <Icon icon="lucide:download" class="w-4 h-4 text-blue-500 hover:text-blue-600 transition-transform duration-200 hover:scale-110 cursor-pointer" />
+                                                    </a>
+                                                {/if}
+                                            </div>
+                                        </div>
+                                    {/if}
+                                </div>
+                            {/if}
+                            {#if (step.status === 'error' || step.status === 'failed') && step.error_details}
+                                <div class="text-red-600 dark:text-red-400 text-xs mt-2 pl-2 {classes.borderClass}">
+                                    <strong>Error:</strong> {step.error_details}
+                                </div>
+                            {/if}
+                        </div>
+                    {/each}
+                {:else}
+                    {@html formatContent(displayText)}
+                {/if}
+            </div>
+        </div>
+    </div>
 </div>
 {/if}
+
+ 
 
 <style>
 :global(.shimmer-text) {
