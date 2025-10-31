@@ -111,7 +111,7 @@
 			variant="ghost"
 			size="sm"
 			class="p-1 h-auto hover:bg-destructive/10 hover:text-destructive"
-			on:click={() => onRemove(card.id)}
+			on:click={() => onRemove(card.visualizationId ?? card.id)}
 			title="Remove visualization"
 		>
 			<Icon icon="lucide:x" class="w-4 h-4" />
