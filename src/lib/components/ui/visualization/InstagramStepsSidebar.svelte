@@ -47,9 +47,12 @@
 		isAuto?: boolean; // Flag for auto-generated cards
 		priority?: number; // For sorting auto-generated cards
 		visualizationId?: number; // Database visualization ID for linking to scripter job
+		stepId?: string | number;
 	}> = [];
 
 	let cardIdCounter = 0;
+
+	$: filteredCards = promptCards.filter((card) => card.stepId === selectedStep);
 
 	$: if (conversationResults.length === 0 && promptCards.length > 0) {
     
@@ -379,7 +382,8 @@
 			sessionId: null,
 			results: null,
 			error: null,
-			createdAt: Date.now()
+			createdAt: Date.now(),
+			stepId: selectedStep
 		};
 
 		promptCards = [...promptCards, newCard];
@@ -482,7 +486,7 @@
 	}
 
 	async function submitAllPrompts() {
-		const pending = promptCards.filter((card) => card.status === 'pending');
+		const pending = filteredCards.filter((card) => card.status === 'pending');
 
 		if (pending.length === 0) {
 			return;
@@ -546,24 +550,23 @@
 	}
 
 	async function clearAllCards(){
-		const confirmDelete = confirm('Are you sure you want to delete all visualizations?');
+		const confirmDelete = confirm('Are you sure you want to delete all visualizations for this step?');
 		if(!confirmDelete) return;
-
-		const cardsToDelete = [...promptCards];
+		
+		const cardForThisStep = promptCards.filter((card) => card.stepId === selectedStep);
+		const cardsToKeep = promptCards.filter((card) => card.stepId !=selectedStep);
 		try{
-			await Promise.all(
-				cardsToDelete.map((card)=>{
-					if(card.visualizationId){
-						return apiService.deleteVisualization(card.visualizationId);
-					}
-				})
-			);
-			promptCards = [];
-			triggerSuccessToast('All visualizations are deleted successfully!');
+			const deletePromises = cardForThisStep
+			    .filter((card) => card.visualizationId)
+			    .map((card) => apiService.deleteVisualization(card.visualizationId!));
+			await Promise.all(deletePromises);
+
+			promptCards = cardsToKeep;
+			triggerSuccessToast('Visualizations for this step were deleted successfully!');
 
 		}catch(error){
-			console.error('Error clearing all visualizations:',error);
-			triggerErrorToast('Error clearing all visualizations.');
+			console.error('Error clearing visualizations for this step:',error);
+			triggerErrorToast('Error clearing visualizations for this step.');
 		}
 	}
 			
@@ -675,8 +678,7 @@
 			}))
 		});
 
-		// Clear existing auto-generated cards
-		promptCards = promptCards.filter(card => !card.isAuto);
+		
 
 		// Create prompt cards from AI-generated visualizations
 		const autoCards = visualizations
@@ -702,7 +704,8 @@
 					isAuto: true,
 					priority: viz.priority,
 					// Try multiple sources for visualization ID: viz.id (from event or DB), visualizationIds array, or null
-					visualizationId: viz.id || visualizationIds?.[index] || null
+					visualizationId: viz.id || visualizationIds?.[index] || null,
+					stepId: viz.conversation_result_id
 				};
 			});
 
@@ -895,8 +898,8 @@
 		<div class="flex items-center justify-between mb-3">
 			<h3 class="text-sm font-semibold">
 				{visualizationMode === 'auto' ? 'Auto-Generated Visualizations' : 'Custom Visualizations'}
-				{#if promptCards.length > 0}
-					<span class="text-muted-foreground">({promptCards.length})</span>
+				{#if filteredCards.length > 0}
+					<span class="text-muted-foreground">({filteredCards.length})</span>
 				{/if}
 			</h3>
 			{#if visualizationMode === 'manual'}
@@ -922,7 +925,7 @@
 					<p class="text-xs mt-1">AI is analyzing the data to recommend visualizations...</p>
 				</div>
 			{/if}
-			{#if promptCards.length === 0 && !isAnalyzing}
+			{#if filteredCards.length === 0 && !isAnalyzing}
 				<div class="text-center text-muted-foreground py-8">
 					<Icon icon={visualizationMode === 'auto' ? 'lucide:sparkles' : 'lucide:layers'} class="w-12 h-12 mx-auto mb-2 opacity-50" />
 					<p class="text-sm font-medium">
@@ -934,8 +937,8 @@
 							: 'Click "Add" to create a new visualization'}
 					</p>
 				</div>
-            {:else if promptCards.length > 0}
-				{#each promptCards as card (card.id)}
+            {:else if filteredCards.length > 0}
+				{#each filteredCards as card (card.id)}
 					<VisualizationPromptCard
 						{card}
 						onRemove={removePromptCard}
@@ -951,14 +954,14 @@
 		</div>
 
 		<!-- Batch Actions -->
-		{#if promptCards.length > 0}
+		{#if filteredCards.length > 0}
 			<div class="flex gap-2">
 				<Button
 					variant="default"
 					size="sm"
 					class="flex-1 text-xs"
 					on:click={submitAllPrompts}
-					disabled={!promptCards.some((c) => c.status === 'pending')}
+					disabled={!filteredCards.some((c) => c.status === 'pending')}
 				>
 					<Icon icon="lucide:play-circle" class="w-3 h-3 mr-1" />
 					Generate All
