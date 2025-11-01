@@ -21,6 +21,7 @@
 	let currentMessages: Array<{id: string, role: 'user' | 'assistant', content: string, timestamp: Date, isVoiceInput: boolean}> = [];
 	let conversationResults: Array<any> = [];
 	let chatSidebarRef: any;
+	let isChatLoading = false;
 
 	// Drag separator variables
 	let isDragging = false;
@@ -203,7 +204,7 @@
 				// Load saved visualizations from database BEFORE setting selectedStep
 				// This ensures handleAutoVisualizations() is called before reactive statement triggers
 				if (data?.visualizations && data.visualizations.length > 0) {
-					loadSavedVisualizations(data.visualizations);
+					await loadSavedVisualizations(data.visualizations);
 				}
 
 				// Auto-select first step AFTER loading visualizations
@@ -355,18 +356,19 @@
     function handleChatSelect(chatId: string) {
         console.log('handleChatSelect called with:', chatId);
         selectedChatId = chatId;
+		if(selectedChatId!==`new-${Date.now()}`){
+			isChatLoading = true;
+		}
 
-        if (chatId.startsWith('new-')) {
-            console.log('Resetting all state for new chat');
-            currentMessages = []; 
-            conversationResults = []; 
-            selectedStep = '';
-            hasVisualizationData = false;
-            lastUserQuery = '';
-            scripterResults = [];
-            selectedViewType = 'datatable';
-            hasSavedVisualizationsCount = 0;
-        }
+        console.log('Resetting all state for new chat');
+        currentMessages = []; 
+        conversationResults = []; 
+        selectedStep = '';
+        hasVisualizationData = false;
+        lastUserQuery = '';
+        scripterResults = [];
+        selectedViewType = 'datatable';
+        hasSavedVisualizationsCount = 0;
         
         // Close sidebar on mobile after selection
 		if (isMobile) {
@@ -389,11 +391,6 @@
 	function handleConversationLoaded(conversationData: any) {
 		console.log('Conversation loaded:', conversationData);
 		if (conversationData && conversationData.success && conversationData.data) {
-			// Store conversation results for processing steps first
-			if (conversationData.data.results) {
-				conversationResults = conversationData.data.results;
-				console.log('Conversation results set:', conversationResults);
-			}
 
 			// Transform the API messages to match our component structure
 			if (conversationData.data.messages) {
@@ -434,16 +431,21 @@
 				});
 				console.log('Messages set:', currentMessages);
 			}
+			
 		}
 
 		// Load visualization data for the right sidebar
-		if (conversationData && conversationData.data && conversationData.data.conversation_id) {
-			conversationId = conversationData.data.conversation_id;
-			loadVisualizationData(conversationData.data.conversation_id);
-			// Setup Echo listener for visualization events
-			setupVisualizationEchoListener(conversationId);
-		}
-	}
+		const convId = conversationData?.data?.id || conversationData?.data?.conversation_id;
+	    if (convId) {
+            conversationId = String(convId); // Ensure it's a string
+            loadVisualizationData(conversationId);
+            // Setup Echo listener for visualization events
+            setupVisualizationEchoListener(conversationId);
+        } else if (conversationData?.data) { // Log an error if data exists but no ID was found
+            console.error('Could not find a valid conversation ID in handleConversationLoaded', conversationData.data);
+        }
+		isChatLoading = false;
+    }
 
 	function handleNewMessage(message: {id: string, role: 'user' | 'assistant', content: string, timestamp: Date, isVoiceInput: boolean}) {
 		// Check if message with same ID exists (for replacing processing messages)
@@ -653,6 +655,14 @@
 
 		<!-- Visualization Panel Area -->
 		<div class="flex-1 min-h-0">
+			{#if isChatLoading}
+                <div class="absolute inset-0 bg-muted/80 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div class="flex flex-col items-center gap-2">
+                        <Icon icon="lucide:loader-2" class="w-8 h-8 animate-spin text-primary" />
+                        <span class="text-muted-foreground">Loading data...</span>
+                    </div>
+                </div>
+            {/if}
 			<VisualizationPanel 
 				hasData={hasVisualizationData} 
 				{selectedStep}
@@ -685,6 +695,14 @@
 		h-full bg-muted/30 border-l overflow-hidden
 	`}>
 		{#if rightSidebarVisible}
+		    {#if isChatLoading}
+                <div class="absolute inset-0 bg-muted/80 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div class="flex flex-col items-center gap-2">
+                        <Icon icon="lucide:loader-2" class="w-8 h-8 animate-spin text-primary" />
+                        <span class="text-muted-foreground">Loading data...</span>
+                    </div>
+                </div>
+            {/if}
 			<InstagramStepsSidebar
 				bind:this={visualizationSidebarRef}
 				selectedStep={selectedStep}

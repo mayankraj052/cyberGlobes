@@ -51,7 +51,7 @@
 
 	let cardIdCounter = 0;
 
-	$: if (conversationResults.length === 0 && promptCards.length > 0) {
+	$: if (conversationResults.length === 0 && promptCards.length >= 0) {
     
         console.log('conversationResults is empty, clearing internal promptCards.');
         promptCards = [];
